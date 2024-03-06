@@ -21,13 +21,17 @@ import io.legado.app.ui.book.read.page.entities.TextPage
 import io.legado.app.ui.book.read.page.entities.column.ImageColumn
 import io.legado.app.ui.book.read.page.entities.column.ReviewColumn
 import io.legado.app.ui.book.read.page.entities.column.TextColumn
+import io.legado.app.utils.LogUtils
 import io.legado.app.utils.dpToPx
 import io.legado.app.utils.fastSum
 import io.legado.app.utils.splitNotBlank
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.LinkedList
 import java.util.Locale
 import kotlin.coroutines.coroutineContext
@@ -78,13 +82,21 @@ class TextChapterLayout(
 
     var exception: Throwable? = null
 
+    var channel = Channel<TextPage>(Int.MAX_VALUE)
+
+    companion object {
+        val lock = Mutex()
+    }
+
     init {
         job = Coroutine.async(scope) {
             launch {
                 val bookSource = book.getBookSource() ?: return@launch
                 BookHelp.saveImages(bookSource, book, bookChapter, bookContent.toString())
             }
-            getTextChapter(book, bookChapter, displayTitle, bookContent)
+            lock.withLock {
+                getTextChapter(book, bookChapter, displayTitle, bookContent)
+            }
         }.onError {
             exception = it
             onException(it)
@@ -124,6 +136,7 @@ class TextChapterLayout(
         textPage.isCompleted = true
         textPage.textChapter = textChapter
         textPage.upLinesPosition()
+        channel.trySend(textPage)
         try {
             listener?.onLayoutPageCompleted(textPages.lastIndex, textPage)
         } catch (e: Exception) {
@@ -133,6 +146,7 @@ class TextChapterLayout(
     }
 
     private fun onCompleted() {
+        channel.close()
         try {
             listener?.onLayoutCompleted()
         } catch (e: Exception) {
@@ -144,6 +158,7 @@ class TextChapterLayout(
     }
 
     private fun onException(e: Throwable) {
+        channel.close(e)
         if (e is CancellationException) {
             listener = null
             return
@@ -644,7 +659,20 @@ class TextChapterLayout(
             val gapCount: Int = words.lastIndex
             val d = residualWidth / gapCount
             textLine.extraLetterSpacingOffsetX = -d / 2
-            textLine.extraLetterSpacing = d / textPaint.textSize
+            val textSize = textPaint.textSize
+            textLine.extraLetterSpacing = d / textSize
+            LogUtils.d("TextChapterLayout") {
+                "words:${words.joinToString("")}"
+            }
+            LogUtils.d("TextChapterLayout") {
+                "textWidths(${textWidths.fastSum()}):$textWidths"
+            }
+            LogUtils.d("TextChapterLayout") {
+                "textSize:$textSize desiredWidth:$desiredWidth residualWidth:$residualWidth " +
+                        "gapCount:$gapCount d:$d " +
+                        "extraLetterSpacingOffsetX:${textLine.extraLetterSpacingOffsetX} " +
+                        "extraLetterSpacing:${textLine.extraLetterSpacing}"
+            }
             var x = startX
             for (index in words.indices) {
                 val char = words[index]
@@ -774,16 +802,21 @@ class TextChapterLayout(
         }
         val widths = ArrayList<Float>(clusterCount)
         val stringList = ArrayList<String>(clusterCount)
-        var i = start
-        while (i < start + length) {
+        var i = 0
+        while (i < length) {
             val clusterBaseIndex = i++
-            widths.add(widthsArray[clusterBaseIndex])
-            while (i < length && widthsArray[i] == 0f) {
+            widths.add(widthsArray[start + clusterBaseIndex])
+            while (i < length && widthsArray[start + i] == 0f && !isZeroWidthChar(text[i])) {
                 i++
             }
-            stringList.add(text.substring(clusterBaseIndex - start, i - start))
+            stringList.add(text.substring(clusterBaseIndex, i))
         }
         return stringList to widths
+    }
+
+    private fun isZeroWidthChar(char: Char): Boolean {
+        val code = char.code
+        return code == 8203 || code == 8204 || code == 8288
     }
 
 }

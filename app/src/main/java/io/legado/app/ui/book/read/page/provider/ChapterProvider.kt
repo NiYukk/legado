@@ -23,6 +23,7 @@ import io.legado.app.ui.book.read.page.entities.TextPage
 import io.legado.app.ui.book.read.page.entities.column.ImageColumn
 import io.legado.app.ui.book.read.page.entities.column.ReviewColumn
 import io.legado.app.ui.book.read.page.entities.column.TextColumn
+import io.legado.app.utils.LogUtils
 import io.legado.app.utils.RealPathUtil
 import io.legado.app.utils.dpToPx
 import io.legado.app.utils.fastSum
@@ -32,6 +33,7 @@ import io.legado.app.utils.postEvent
 import io.legado.app.utils.spToPx
 import io.legado.app.utils.splitNotBlank
 import io.legado.app.utils.textHeight
+import kotlinx.coroutines.CoroutineScope
 import splitties.init.appCtx
 import java.util.LinkedList
 import java.util.Locale
@@ -306,6 +308,8 @@ object ChapterProvider {
     }
 
     fun getTextChapterAsync(
+        scope: CoroutineScope,
+        book: Book,
         bookChapter: BookChapter,
         displayTitle: String,
         bookContent: BookContent,
@@ -320,7 +324,9 @@ object ChapterProvider {
             bookChapter.isVip,
             bookChapter.isPay,
             bookContent.effectiveReplaceRules
-        )
+        ).apply {
+            createLayout(scope, book, bookContent)
+        }
 
         return textChapter
     }
@@ -811,6 +817,9 @@ object ChapterProvider {
         titleBottomSpacing = ReadBookConfig.titleBottomSpacing.dpToPx()
         val bodyIndent = ReadBookConfig.paragraphIndent
         indentCharWidth = StaticLayout.getDesiredWidth(bodyIndent, contentPaint) / bodyIndent.length
+        LogUtils.d("ChapterProvider") {
+            "bodyIndentLength:${bodyIndent.length} indentCharWidth:$indentCharWidth"
+        }
         titlePaintTextHeight = titlePaint.textHeight
         contentPaintTextHeight = contentPaint.textHeight
         titlePaintFontMetrics = titlePaint.fontMetrics
@@ -880,9 +889,17 @@ object ChapterProvider {
         //正文
         val cPaint = TextPaint()
         cPaint.color = ReadBookConfig.textColor
-        cPaint.letterSpacing = ReadBookConfig.letterSpacing
+        cPaint.letterSpacing = ReadBookConfig.letterSpacing.also {
+            LogUtils.d("ChapterProvider") {
+                "ReadBookConfig.letterSpacing:$it"
+            }
+        }
         cPaint.typeface = textFont
-        cPaint.textSize = ReadBookConfig.textSize.toFloat().spToPx()
+        cPaint.textSize = ReadBookConfig.textSize.toFloat().spToPx().also {
+            LogUtils.d("ChapterProvider") {
+                "ReadBookConfig.textSize:$it"
+            }
+        }
         cPaint.isAntiAlias = true
         cPaint.isLinearText = true
         return Pair(tPaint, cPaint)
@@ -896,7 +913,7 @@ object ChapterProvider {
             viewWidth = width
             viewHeight = height
             upLayout()
-            postEvent(EventBus.UP_CONFIG, arrayOf(5))
+            postEvent(EventBus.UP_CONFIG, arrayListOf(5))
         }
     }
 
