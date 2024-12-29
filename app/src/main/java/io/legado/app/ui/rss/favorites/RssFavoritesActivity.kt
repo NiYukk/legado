@@ -21,6 +21,7 @@ import io.legado.app.utils.gone
 import io.legado.app.utils.viewbindingdelegate.viewBinding
 import io.legado.app.utils.visible
 import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
@@ -40,6 +41,26 @@ class RssFavoritesActivity : BaseActivity<ActivityRssFavoritesBinding>() {
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         initView()
         upFragments()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        //从ReadRssActivity退出时，判断是否需要重新定位tabLayout选中项
+        if (currentGroup.isNotEmpty() && groupList.isNotEmpty()){
+            var item = groupList.indexOf(currentGroup)
+            val currentItem = binding.viewPager.currentItem
+            //如果坐标没有变化，则结束
+            if(item == currentItem){
+                return
+            }
+            if (item == -1){
+                item = currentItem
+            }
+            lifecycleScope.launch {
+                delay(100)
+                binding.tabLayout.getTabAt(item)?.select()
+            }
+        }
     }
 
     private fun initView() {
@@ -105,12 +126,6 @@ class RssFavoritesActivity : BaseActivity<ActivityRssFavoritesBinding>() {
                     upGroupsMenu()
                 }
                 adapter.notifyDataSetChanged()
-                val item = groupList.indexOf(currentGroup)
-                if (item > -1) {
-                    binding.viewPager.setCurrentItem(item)
-                } else if (groupList.isNotEmpty()) {
-                    currentGroup = groupList[binding.viewPager.currentItem]
-                }
             }
         }
     }
@@ -119,7 +134,7 @@ class RssFavoritesActivity : BaseActivity<ActivityRssFavoritesBinding>() {
         alert(R.string.draw) {
             val item = binding.viewPager.currentItem
             val group = groupList[item]
-            setMessage(getString(R.string.sure_del) + "\n" + group + " 分组的收藏")
+            setMessage(getString(R.string.sure_del) + "\n<" + group + ">" + getString(R.string.group))
             noButton()
             yesButton {
                 appDb.rssStarDao.deleteByGroup(group)
@@ -129,7 +144,7 @@ class RssFavoritesActivity : BaseActivity<ActivityRssFavoritesBinding>() {
 
     private fun deleteAll() {
         alert(R.string.draw) {
-            setMessage(getString(R.string.sure_del) + "\n" + "所有收藏")
+            setMessage(getString(R.string.sure_del) + "\n<" + getString(R.string.all) + ">" + getString(R.string.favorite))
             noButton()
             yesButton {
                 appDb.rssStarDao.deleteAll()
