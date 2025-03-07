@@ -26,6 +26,7 @@ import io.legado.app.help.globalExecutor
 import io.legado.app.model.localBook.TextFile
 import io.legado.app.model.webBook.WebBook
 import io.legado.app.service.BaseReadAloudService
+import io.legado.app.service.CacheBookService
 import io.legado.app.ui.book.read.page.entities.TextChapter
 import io.legado.app.ui.book.read.page.provider.ChapterProvider
 import io.legado.app.ui.book.read.page.provider.LayoutProgressListener
@@ -135,6 +136,8 @@ object ReadBook : CoroutineScope by MainScope() {
         TextFile.clear()
         synchronized(this) {
             loadingChapters.clear()
+            downloadedChapters.clear()
+            downloadFailChapters.clear()
         }
     }
 
@@ -953,9 +956,10 @@ object ReadBook : CoroutineScope by MainScope() {
         preDownloadTask?.cancel()
         downloadScope.coroutineContext.cancelChildren()
         coroutineContext.cancelChildren()
-        downloadedChapters.clear()
-        downloadFailChapters.clear()
         ImageProvider.clear()
+        if (!CacheBookService.isRun) {
+            CacheBook.close()
+        }
     }
 
     interface CallBack : LayoutProgressListener {

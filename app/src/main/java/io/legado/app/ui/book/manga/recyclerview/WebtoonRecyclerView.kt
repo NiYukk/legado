@@ -1,4 +1,4 @@
-package io.legado.app.ui.book.manga.rv
+package io.legado.app.ui.book.manga.recyclerview
 
 import android.animation.AnimatorSet
 import android.animation.ValueAnimator
@@ -48,8 +48,8 @@ class WebtoonRecyclerView @JvmOverloads constructor(
     var disableMangaScaling = false
     var disabledClickScroller = false
 
-    private var mToucheMiddle: (() -> Unit)? = null
-    fun onToucheMiddle(init: () -> Unit) = apply { this.mToucheMiddle = init }
+    private var mTouchMiddle: (() -> Unit)? = null
+    fun onTouchMiddle(init: () -> Unit) = apply { this.mTouchMiddle = init }
     private var mNextPage: (() -> Unit)? = null
     fun onNextPage(init: () -> Unit) = apply { this.mNextPage = init }
     private var mPrevPage: (() -> Unit)? = null
@@ -60,13 +60,15 @@ class WebtoonRecyclerView @JvmOverloads constructor(
         halfHeight = MeasureSpec.getSize(heightSpec) / 2
         if (!heightSet) {
             originalHeight = MeasureSpec.getSize(heightSpec)
+            val width = MeasureSpec.getSize(widthSpec)
+            setClickArea(width, originalHeight)
             heightSet = true
         }
         super.onMeasure(widthSpec, heightSpec)
     }
 
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        detector.onTouchEvent(ev!!)
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        detector.onTouchEvent(ev)
         return super.dispatchTouchEvent(ev)
     }
 
@@ -103,8 +105,7 @@ class WebtoonRecyclerView @JvmOverloads constructor(
         return super.dispatchNestedPreScroll(dx, dy, consumed, offsetInWindow, type)
     }
 
-    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-        super.onSizeChanged(w, h, oldw, oldh)
+    private fun setClickArea(width: Int, height: Int) {
         mcRect.set(width * 0.33f, height * 0.33f, width * 0.66f, height * 0.66f)
         blRect.set(0f, height * 0.66f, width * 0.33f, height.toFloat())
         brRect.set(width * 0.66f, height * 0.66f, width.toFloat(), height.toFloat())
@@ -251,7 +252,7 @@ class WebtoonRecyclerView @JvmOverloads constructor(
         override fun onSingleTapConfirmed(ev: MotionEvent): Boolean {
             when {
                 mcRect.contains(ev.rawX, ev.rawY) -> {
-                    mToucheMiddle?.invoke()
+                    mTouchMiddle?.invoke()
                 }
 
                 blRect.contains(ev.rawX, ev.rawY) && !disabledClickScroller -> {
