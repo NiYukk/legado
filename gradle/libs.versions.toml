@@ -70,8 +70,6 @@ room = "2.7.1"
 recyclerview = "1.2.0"
 #noinspection GradleDependency
 viewpager2 = "1.0.0"
-#noinspection GradleDependency
-firebaseBom = "33.2.0"
 
 [libraries]
 
@@ -91,10 +89,6 @@ core-core = { module = "androidx.core:core", version.ref = "core" }
 core-ktx = { module = "androidx.core:core-ktx", version.ref = "core" }
 
 androidx-espresso-core = { module = "androidx.test.espresso:espresso-core", version = "3.6.1" }
-
-firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
-firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
-firebase-perf = { module = "com.google.firebase:firebase-perf" }
 
 
 fragment-fragment = { module = "androidx.fragment:fragment", version.ref = "fragment" }
@@ -208,11 +202,9 @@ kotlin-sam = { id = "org.jetbrains.kotlin.plugin.sam.with.receiver", version.ref
 kotlin-lombok = { id = "org.jetbrains.kotlin.plugin.lombok", version.ref = "kotlin" }
 kotlin-parcelize = { id = "org.jetbrains.kotlin.plugin.parcelize", version.ref = "kotlin" }
 
-google-services = { id = "com.google.gms.google-services", version = "4.4.2" }
-
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 room = { id = "androidx.room", version.ref = "room" }
 
 #protobuf = { id = "com.google.protobuf", version = "0.9.4" }
 
-download = { id = "de.undercouch.download", version = "5.6.0" }
+download = { id = "de.undercouch.download", version
